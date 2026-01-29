@@ -206,13 +206,24 @@ function Dashboard() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    color: '#111827'
+                    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '0.75rem',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
+                    color: '#111827',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    zIndex: 9999
                   }}
-                  cursor="pointer"
+                  wrapperStyle={{
+                    zIndex: 9999,
+                    pointerEvents: 'none'
+                  }}
+                  itemStyle={{
+                    color: '#111827',
+                    fontWeight: '600'
+                  }}
                 />
                 <Legend 
                   verticalAlign="bottom" 
