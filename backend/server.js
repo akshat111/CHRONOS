@@ -118,39 +118,33 @@ const startServer = async () => {
       `);
         });
 
-        // Initialize and start Worker (Job Scheduler) - Only in non-serverless environments
-        // Vercel serverless functions can't run background processes
-        if (process.env.DISABLE_WORKER !== 'true') {
-            const taskHandlers = {
-                ...handlers,
-                notification: handlers.sendNotification,
-                backup: handlers.dbMaintenance // Mapping backup to dbMaintenance
-            };
+        // Initialize and start Worker (Job Scheduler)
+        const taskHandlers = {
+            ...handlers,
+            notification: handlers.sendNotification,
+            backup: handlers.dbMaintenance // Mapping backup to dbMaintenance
+        };
 
-            const worker = new WorkerService({
-                workerId: `worker_${process.pid}`,
-                pollInterval: 5000,
-                handlers: taskHandlers
+        const worker = new WorkerService({
+            workerId: `worker_${process.pid}`,
+            pollInterval: 5000,
+            handlers: taskHandlers
+        });
+
+        await worker.start();
+
+        // Graceful shutdown
+        const shutdown = async () => {
+            console.log('Shutting down...');
+            await worker.stop();
+            server.close(() => {
+                console.log('Server closed');
+                process.exit(0);
             });
+        };
 
-            await worker.start();
-
-            // Graceful shutdown
-            const shutdown = async () => {
-                console.log('Shutting down...');
-                await worker.stop();
-                server.close(() => {
-                    console.log('Server closed');
-                    process.exit(0);
-                });
-            };
-
-            process.on('SIGTERM', shutdown);
-            process.on('SIGINT', shutdown);
-        } else {
-            console.log('⚠️  Worker disabled (serverless mode)');
-            console.log('💡 Jobs will not execute automatically. Use manual triggers or external cron.');
-        }
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
 
     } catch (error) {
         console.error('Failed to start server:', error);

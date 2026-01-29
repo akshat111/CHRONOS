@@ -13,7 +13,6 @@
         }
     ],
     "env": {
-        "NODE_ENV": "production",
-        "DISABLE_WORKER": "true"
+        "NODE_ENV": "production"
     }
 }
