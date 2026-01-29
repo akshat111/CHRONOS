@@ -1,9 +1,12 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
+// API base URL - uses environment variable in production, localhost in development
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 // Create axios instance
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: `${BASE_URL}/api`,
     timeout: 30000,
     headers: {
         'Content-Type': 'application/json'
