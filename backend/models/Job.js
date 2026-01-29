@@ -436,6 +436,12 @@ jobSchema.index({ tags: 1 });
  */
 jobSchema.index({ jobName: 'text', description: 'text' });
 
+/**
+ * Compound index for history/analytics queries
+ * Why: Efficiently count jobs by status within a time range (e.g. Dashboard stats)
+ */
+jobSchema.index({ isActive: 1, status: 1, updatedAt: -1 });
+
 // ═══════════════════════════════════════════════════════════════════════
 // VIRTUALS
 // ═══════════════════════════════════════════════════════════════════════

@@ -32,9 +32,13 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-// Allow all origins for troubleshooting - will refine later specific to Vercel/Railway
+// CORS configuration
+// Allow all origins dynamically to support credentials
 app.use(cors({
-    origin: '*',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl) or any other origin
+        callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']

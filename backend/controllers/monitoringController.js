@@ -147,147 +147,83 @@ const getSystemStats = asyncHandler(async (req, res) => {
     const periodMs = periodMap[period] || periodMap['24h'];
     const fromTime = new Date(Date.now() - periodMs);
 
-    // Job counts by status (current snapshot for active states)
-    const jobCounts = await Job.aggregate([
-        { $match: { isActive: true } },
-        {
-            $group: {
-                _id: '$status',
-                count: { $sum: 1 }
-            }
-        }
-    ]);
-
-    const statusCounts = {
-        PENDING: 0,
-        SCHEDULED: 0,
-        QUEUED: 0,
-        RUNNING: 0,
-        COMPLETED: 0,
-        FAILED: 0,
-        PAUSED: 0,
-        CANCELLED: 0
-    };
-
-    jobCounts.forEach(({ _id, count }) => {
-        statusCounts[_id] = count;
-    });
-
-    // Time-filtered counts for completed/failed jobs (only within selected period)
-    const completedInPeriod = await Job.countDocuments({
-        isActive: true,
-        status: 'COMPLETED',
-        updatedAt: { $gte: fromTime }
-    });
-
-    const failedInPeriod = await Job.countDocuments({
-        isActive: true,
-        status: 'FAILED',
-        updatedAt: { $gte: fromTime }
-    });
-
-    const totalJobs = Object.values(statusCounts).reduce((a, b) => a + b, 0);
-
-    // Job counts by type
-    const typeCounts = await Job.aggregate([
-        { $match: { isActive: true } },
-        {
-            $group: {
-                _id: '$jobType',
-                count: { $sum: 1 }
-            }
-        }
-    ]);
-
-    // Execution stats for the period
-    const execStats = await JobExecutionLog.aggregate([
-        {
-            $match: {
-                executionStartTime: { $gte: fromTime }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                totalExecutions: { $sum: 1 },
-                successCount: {
-                    $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] }
-                },
-                failedCount: {
-                    $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] }
-                },
-                timeoutCount: {
-                    $sum: { $cond: [{ $eq: ['$status', 'TIMEOUT'] }, 1, 0] }
-                },
-                retryCount: {
-                    $sum: { $cond: ['$isRetry', 1, 0] }
-                },
-                avgDuration: { $avg: '$duration' },
-                maxDuration: { $max: '$duration' },
-                minDuration: { $min: '$duration' },
-                totalDuration: { $sum: '$duration' }
-            }
-        }
-    ]);
-
-    const execData = execStats[0] || {
-        totalExecutions: 0,
-        successCount: 0,
-        failedCount: 0,
-        timeoutCount: 0,
-        retryCount: 0,
-        avgDuration: 0,
-        maxDuration: 0,
-        minDuration: 0,
-        totalDuration: 0
-    };
-
-    // Execution breakdown by task type
-    const execByType = await JobExecutionLog.aggregate([
-        {
-            $match: {
-                executionStartTime: { $gte: fromTime }
-            }
-        },
-        {
-            $group: {
-                _id: '$taskType',
-                count: { $sum: 1 },
-                successCount: {
-                    $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] }
-                },
-                avgDuration: { $avg: '$duration' }
-            }
-        },
-        { $sort: { count: -1 } },
-        { $limit: 10 }
-    ]);
-
-    // Execution trend based on selected period
-    const hourlyTrend = await JobExecutionLog.aggregate([
-        {
-            $match: {
-                executionStartTime: { $gte: fromTime }
-            }
-        },
-        {
-            $group: {
-                _id: {
-                    $dateToString: {
-                        format: '%Y-%m-%d %H:00',
-                        date: '$executionStartTime'
-                    }
-                },
-                total: { $sum: 1 },
-                success: {
-                    $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] }
-                },
-                failed: {
-                    $sum: { $cond: [{ $in: ['$status', ['FAILED', 'TIMEOUT']] }, 1, 0] }
+    // Execute independent queries in parallel for performance
+    const [
+        jobCounts,
+        completedInPeriod,
+        failedInPeriod,
+        typeCounts,
+        execStats,
+        execByType,
+        hourlyTrend
+    ] = await Promise.all([
+        // 1. Job counts by status
+        Job.aggregate([
+            { $match: { isActive: true } },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]),
+        // 2. Completed jobs in period
+        Job.countDocuments({
+            isActive: true,
+            status: 'COMPLETED',
+            updatedAt: { $gte: fromTime }
+        }),
+        // 3. Failed jobs in period
+        Job.countDocuments({
+            isActive: true,
+            status: 'FAILED',
+            updatedAt: { $gte: fromTime }
+        }),
+        // 4. Job counts by type
+        Job.aggregate([
+            { $match: { isActive: true } },
+            { $group: { _id: '$jobType', count: { $sum: 1 } } }
+        ]),
+        // 5. Execution stats
+        JobExecutionLog.aggregate([
+            { $match: { executionStartTime: { $gte: fromTime } } },
+            {
+                $group: {
+                    _id: null,
+                    totalExecutions: { $sum: 1 },
+                    successCount: { $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] } },
+                    failedCount: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } },
+                    timeoutCount: { $sum: { $cond: [{ $eq: ['$status', 'TIMEOUT'] }, 1, 0] } },
+                    retryCount: { $sum: { $cond: ['$isRetry', 1, 0] } },
+                    avgDuration: { $avg: '$duration' },
+                    maxDuration: { $max: '$duration' },
+                    minDuration: { $min: '$duration' },
+                    totalDuration: { $sum: '$duration' }
                 }
             }
-        },
-        { $sort: { _id: 1 } }
+        ]),
+        // 6. Execution by task type
+        JobExecutionLog.aggregate([
+            { $match: { executionStartTime: { $gte: fromTime } } },
+            {
+                $group: {
+                    _id: '$taskType',
+                    count: { $sum: 1 },
+                    successCount: { $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] } },
+                    avgDuration: { $avg: '$duration' }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+        ]),
+        // 7. Hourly trend
+        JobExecutionLog.aggregate([
+            { $match: { executionStartTime: { $gte: fromTime } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d %H:00', date: '$executionStartTime' } },
+                    total: { $sum: 1 },
+                    success: { $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] } },
+                    failed: { $sum: { $cond: [{ $in: ['$status', ['FAILED', 'TIMEOUT']] }, 1, 0] } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ])
     ]);
 
     return ApiResponse.success(res, 200, 'System statistics retrieved successfully', {
