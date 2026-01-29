@@ -220,7 +220,7 @@ function Jobs() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredJobs.map((job, index) => {
-                  const isNearBottom = index >= filteredJobs.length - 2; // Last 2 rows
+                  const isNearBottom = index >= filteredJobs.length - 2; // Last 2 rows - open upward
                   return (
                   <motion.tr
                     key={job.jobId || job._id}
@@ -281,7 +281,8 @@ function Jobs() {
                               initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className={`absolute right-0 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}
+                              className={`absolute right-0 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 ${isNearBottom ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+                            >
                             >
                               <div className="py-1">
                                 <button
