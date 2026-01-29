@@ -2,12 +2,10 @@
 /node_modules
 node_modules/
 
-# Environment files
-.env
-.env.local
-.env.*.local
-
 # Logs
+logs/
+*.log
+npm-debug.log*
 logs/
 *.log
 npm-debug.log*
