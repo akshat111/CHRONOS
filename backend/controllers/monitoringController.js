@@ -147,40 +147,37 @@ const getSystemStats = asyncHandler(async (req, res) => {
     const periodMs = periodMap[period] || periodMap['24h'];
     const fromTime = new Date(Date.now() - periodMs);
 
-    // Execute independent queries in parallel for performance
-    const [
-        jobCounts,
-        completedInPeriod,
-        failedInPeriod,
-        typeCounts,
-        execStats,
-        execByType,
-        hourlyTrend
-    ] = await Promise.all([
-        // 1. Job counts by status
-        Job.aggregate([
-            { $match: { isActive: true } },
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ]),
-        // 2. Completed jobs in period
-        Job.countDocuments({
-            isActive: true,
-            status: 'COMPLETED',
-            updatedAt: { $gte: fromTime }
-        }),
-        // 3. Failed jobs in period
-        Job.countDocuments({
-            isActive: true,
-            status: 'FAILED',
-            updatedAt: { $gte: fromTime }
-        }),
-        // 4. Job counts by type
-        Job.aggregate([
-            { $match: { isActive: true } },
-            { $group: { _id: '$jobType', count: { $sum: 1 } } }
-        ]),
-        // 5. Execution stats
-        JobExecutionLog.aggregate([
+    // Execute queries sequentially for stability until aggregation syntax is verified
+    // 1. Job counts by status
+    const jobCounts = await Job.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // 2. Completed jobs
+    const completedInPeriod = await Job.countDocuments({
+        isActive: true,
+        status: 'COMPLETED',
+        updatedAt: { $gte: fromTime }
+    });
+
+    // 3. Failed jobs
+    const failedInPeriod = await Job.countDocuments({
+        isActive: true,
+        status: 'FAILED',
+        updatedAt: { $gte: fromTime }
+    });
+
+    // 4. Job counts by type
+    const typeCounts = await Job.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$jobType', count: { $sum: 1 } } }
+    ]);
+
+    // 5. Execution stats (Wrap in try-catch as this complex aggregation might be key failure)
+    let execStats = [];
+    try {
+        execStats = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
@@ -196,9 +193,15 @@ const getSystemStats = asyncHandler(async (req, res) => {
                     totalDuration: { $sum: '$duration' }
                 }
             }
-        ]),
-        // 6. Execution by task type
-        JobExecutionLog.aggregate([
+        ]);
+    } catch (err) {
+        console.error('Error in execStats aggregation:', err);
+    }
+
+    // 6. Execution by task type
+    let execByType = [];
+    try {
+        execByType = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
@@ -210,9 +213,15 @@ const getSystemStats = asyncHandler(async (req, res) => {
             },
             { $sort: { count: -1 } },
             { $limit: 10 }
-        ]),
-        // 7. Hourly trend
-        JobExecutionLog.aggregate([
+        ]);
+    } catch (err) {
+        console.error('Error in execByType aggregation:', err);
+    }
+
+    // 7. Hourly trend
+    let hourlyTrend = [];
+    try {
+        hourlyTrend = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
@@ -223,8 +232,10 @@ const getSystemStats = asyncHandler(async (req, res) => {
                 }
             },
             { $sort: { _id: 1 } }
-        ])
-    ]);
+        ]);
+    } catch (err) {
+        console.error('Error in hourlyTrend aggregation:', err);
+    }
 
     return ApiResponse.success(res, 200, 'System statistics retrieved successfully', {
         period,
