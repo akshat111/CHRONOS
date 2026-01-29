@@ -1,3 +1,6 @@
+import axios from 'axios'
+import toast from 'react-hot-toast'
+
 // API base URL - uses environment variable in production, localhost in development
 const getBaseUrl = () => {
     let url = import.meta.env.VITE_API_URL || 'http://localhost:5000';
