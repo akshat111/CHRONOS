@@ -323,7 +323,13 @@ const getSystemStats = asyncHandler(async (req, res) => {
             avgDuration: Math.round(t.avgDuration)
         })) : [],
 
-        hourlyTrend: Array.isArray(defaults.hourlyTrend) ? defaults.hourlyTrend : []
+        hourlyTrend: Array.isArray(defaults.hourlyTrend) ? defaults.hourlyTrend : [],
+
+        // Debug info to help diagnose why metrics might be zero
+        _debug: {
+            errors: Object.keys(defaults).filter(key => !Array.isArray(defaults[key]) && typeof defaults[key] !== 'number').map(key => ({ key, error: 'Failed to load' })), // Simplified indicator
+            jobCountsError: defaults.jobCounts === undefined ? 'Failed' : null
+        }
     });
 });
 
