@@ -11,7 +11,7 @@ import {
 import { systemApi } from '../services/api'
 import { StatCard, PageLoader, EmptyState } from '../components/common'
 
-const COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#6366f1']
+const COLORS = ['#10b981', '#f43f5e', '#fb923c', '#3b82f6']
 
 function Dashboard() {
   const [stats, setStats] = useState(null)
