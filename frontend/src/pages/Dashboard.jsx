@@ -158,11 +158,13 @@ function Dashboard() {
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: 'none',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '0.5rem',
-                    color: '#f3f4f6'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    color: '#111827'
                   }}
+                  cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
                 />
                 <Bar dataKey="success" fill="#22c55e" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="failed" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -204,11 +206,13 @@ function Dashboard() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: 'none',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '0.5rem',
-                    color: '#f3f4f6'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    color: '#111827'
                   }}
+                  cursor="pointer"
                 />
                 <Legend 
                   verticalAlign="bottom" 
