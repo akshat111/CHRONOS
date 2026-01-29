@@ -1,8 +1,11 @@
-import axios from 'axios'
-import toast from 'react-hot-toast'
-
 // API base URL - uses environment variable in production, localhost in development
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const getBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // Remove trailing slash if present to prevent double slashes (e.g. //api)
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+const BASE_URL = getBaseUrl();
 
 // Create axios instance
 const api = axios.create({
