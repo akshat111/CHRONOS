@@ -147,44 +147,70 @@ const getSystemStats = asyncHandler(async (req, res) => {
     const periodMs = periodMap[period] || periodMap['24h'];
     const fromTime = new Date(Date.now() - periodMs);
 
-    // Execute queries sequentially for stability until aggregation syntax is verified
+    // Initialize DEFAULT values (Zero-Failure Pattern)
+    // If DB calls fail, these safe defaults will be returned instead of crashing 500
+    const defaults = {
+        jobCounts: [],
+        completedInPeriod: 0,
+        failedInPeriod: 0,
+        typeCounts: [],
+        execStats: [],
+        execByType: [],
+        hourlyTrend: []
+    };
+
     // 1. Job counts by status
-    const jobCounts = await Job.aggregate([
-        { $match: { isActive: true } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
+    try {
+        defaults.jobCounts = await Job.aggregate([
+            { $match: { isActive: true } },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+    } catch (error) {
+        console.error('Stats Error (jobCounts):', error.message);
+    }
 
     // 2. Completed jobs
-    const completedInPeriod = await Job.countDocuments({
-        isActive: true,
-        status: 'COMPLETED',
-        updatedAt: { $gte: fromTime }
-    });
+    try {
+        defaults.completedInPeriod = await Job.countDocuments({
+            isActive: true,
+            status: 'COMPLETED',
+            updatedAt: { $gte: fromTime }
+        });
+    } catch (error) {
+        console.error('Stats Error (completedInPeriod):', error.message);
+    }
 
     // 3. Failed jobs
-    const failedInPeriod = await Job.countDocuments({
-        isActive: true,
-        status: 'FAILED',
-        updatedAt: { $gte: fromTime }
-    });
+    try {
+        defaults.failedInPeriod = await Job.countDocuments({
+            isActive: true,
+            status: 'FAILED',
+            updatedAt: { $gte: fromTime }
+        });
+    } catch (error) {
+        console.error('Stats Error (failedInPeriod):', error.message);
+    }
 
     // 4. Job counts by type
-    const typeCounts = await Job.aggregate([
-        { $match: { isActive: true } },
-        { $group: { _id: '$jobType', count: { $sum: 1 } } }
-    ]);
-
-    // 5. Execution stats (Wrap in try-catch as this complex aggregation might be key failure)
-    let execStats = [];
     try {
-        execStats = await JobExecutionLog.aggregate([
+        defaults.typeCounts = await Job.aggregate([
+            { $match: { isActive: true } },
+            { $group: { _id: '$jobType', count: { $sum: 1 } } }
+        ]);
+    } catch (error) {
+        console.error('Stats Error (typeCounts):', error.message);
+    }
+
+    // 5. Execution stats (Aggregation)
+    try {
+        defaults.execStats = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
                     _id: null,
                     totalExecutions: { $sum: 1 },
                     successCount: { $sum: { $cond: [{ $eq: ['$status', 'SUCCESS'] }, 1, 0] } },
-                    failedCount: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } },
+                    failedCount: { $sum: { $cond: [{ $in: ['$status', ['FAILED', 'TIMEOUT']] }, 1, 0] } },
                     timeoutCount: { $sum: { $cond: [{ $eq: ['$status', 'TIMEOUT'] }, 1, 0] } },
                     retryCount: { $sum: { $cond: ['$isRetry', 1, 0] } },
                     avgDuration: { $avg: '$duration' },
@@ -194,14 +220,13 @@ const getSystemStats = asyncHandler(async (req, res) => {
                 }
             }
         ]);
-    } catch (err) {
-        console.error('Error in execStats aggregation:', err);
+    } catch (error) {
+        console.error('Stats Error (execStats):', error.message);
     }
 
     // 6. Execution by task type
-    let execByType = [];
     try {
-        execByType = await JobExecutionLog.aggregate([
+        defaults.execByType = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
@@ -214,14 +239,13 @@ const getSystemStats = asyncHandler(async (req, res) => {
             { $sort: { count: -1 } },
             { $limit: 10 }
         ]);
-    } catch (err) {
-        console.error('Error in execByType aggregation:', err);
+    } catch (error) {
+        console.error('Stats Error (execByType):', error.message);
     }
 
     // 7. Hourly trend
-    let hourlyTrend = [];
     try {
-        hourlyTrend = await JobExecutionLog.aggregate([
+        defaults.hourlyTrend = await JobExecutionLog.aggregate([
             { $match: { executionStartTime: { $gte: fromTime } } },
             {
                 $group: {
@@ -233,10 +257,31 @@ const getSystemStats = asyncHandler(async (req, res) => {
             },
             { $sort: { _id: 1 } }
         ]);
-    } catch (err) {
-        console.error('Error in hourlyTrend aggregation:', err);
+    } catch (error) {
+        console.error('Stats Error (hourlyTrend):', error.message);
     }
 
+    // Process status counts
+    const statusCounts = {
+        PENDING: 0, SCHEDULED: 0, QUEUED: 0, RUNNING: 0,
+        COMPLETED: 0, FAILED: 0, PAUSED: 0, CANCELLED: 0
+    };
+
+    if (Array.isArray(defaults.jobCounts)) {
+        defaults.jobCounts.forEach(({ _id, count }) => {
+            if (_id) statusCounts[_id] = count;
+        });
+    }
+
+    const totalJobs = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+
+    const execData = (defaults.execStats && defaults.execStats[0]) || {
+        totalExecutions: 0, successCount: 0, failedCount: 0,
+        timeoutCount: 0, retryCount: 0, avgDuration: 0,
+        maxDuration: 0, minDuration: 0, totalDuration: 0
+    };
+
+    // Construct response
     return ApiResponse.success(res, 200, 'System statistics retrieved successfully', {
         period,
         periodStart: fromTime.toISOString(),
@@ -245,14 +290,14 @@ const getSystemStats = asyncHandler(async (req, res) => {
         jobs: {
             total: totalJobs,
             byStatus: statusCounts,
-            byType: typeCounts.reduce((acc, { _id, count }) => {
-                acc[_id] = count;
+            byType: Array.isArray(defaults.typeCounts) ? defaults.typeCounts.reduce((acc, { _id, count }) => {
+                if (_id) acc[_id] = count;
                 return acc;
-            }, {}),
+            }, {}) : {},
             active: statusCounts.SCHEDULED + statusCounts.QUEUED + statusCounts.RUNNING,
             pending: statusCounts.PENDING + statusCounts.SCHEDULED,
-            completed: completedInPeriod,
-            failed: failedInPeriod
+            completed: defaults.completedInPeriod,
+            failed: defaults.failedInPeriod
         },
 
         executions: {
@@ -270,15 +315,15 @@ const getSystemStats = asyncHandler(async (req, res) => {
             totalDuration: execData.totalDuration || 0
         },
 
-        executionsByTaskType: execByType.map(t => ({
+        executionsByTaskType: Array.isArray(defaults.execByType) ? defaults.execByType.map(t => ({
             taskType: t._id,
             count: t.count,
             successCount: t.successCount,
             successRate: ((t.successCount / t.count) * 100).toFixed(2) + '%',
             avgDuration: Math.round(t.avgDuration)
-        })),
+        })) : [],
 
-        hourlyTrend
+        hourlyTrend: Array.isArray(defaults.hourlyTrend) ? defaults.hourlyTrend : []
     });
 });
 
