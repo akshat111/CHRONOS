@@ -70,6 +70,16 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Root route
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Welcome to CHRONOS Job Scheduling System API',
+        version: '1.0.0',
+        documentation: '/docs',
+        status: 'running'
+    });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
