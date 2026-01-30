@@ -283,7 +283,6 @@ function Jobs() {
                               exit={{ opacity: 0, scale: 0.95 }}
                               className={`absolute right-0 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 ${isNearBottom ? 'bottom-full mb-2' : 'top-full mt-2'}`}
                             >
-                            >
                               <div className="py-1">
                                 <button
                                   onClick={() => {
