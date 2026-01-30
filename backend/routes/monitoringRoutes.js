@@ -12,6 +12,7 @@ const {
     getLiveStats,
     getWorkerStats
 } = require('../controllers/monitoringController');
+const { cacheMiddleware } = require('../middleware/cacheMiddleware');
 
 /**
  * @route   GET /system/health
@@ -25,8 +26,9 @@ router.get('/health', getSystemHealth);
  * @desc    Get job and execution statistics
  * @access  Public
  * @query   period - Time period (1h, 6h, 24h, 7d, 30d)
+ * @cache   30 seconds (improves production performance)
  */
-router.get('/stats', getSystemStats);
+router.get('/stats', cacheMiddleware(30, (req) => `stats:${req.query.period || '24h'}`), getSystemStats);
 
 /**
  * @route   GET /system/stats/live

@@ -20,6 +20,7 @@ const {
 } = require('../controllers/jobController');
 
 const asyncHandler = require('../middleware/asyncHandler');
+const { cacheMiddleware } = require('../middleware/cacheMiddleware');
 
 // Note: Authentication disabled for development/testing
 // Uncomment the line below to enable auth:
@@ -67,8 +68,12 @@ router.post('/recurring', asyncHandler(createRecurringJob));
  * @route   GET /api/jobs
  * @desc    Get all jobs with pagination and filtering
  * @access  Public (for testing)
+ * @cache   15 seconds (improves production performance)
  */
-router.get('/', asyncHandler(getAllJobs));
+router.get('/', cacheMiddleware(15, (req) => {
+    const { status, jobType, page = 1, limit = 50 } = req.query;
+    return `jobs:${status || 'all'}:${jobType || 'all'}:${page}:${limit}`;
+}), asyncHandler(getAllJobs));
 
 /**
  * @route   GET /api/jobs/:jobId

@@ -12,6 +12,7 @@ const Job = require('../models/Job');
 const ApiResponse = require('../utils/ApiResponse');
 const AppError = require('../utils/AppError');
 const { validateOneTimeJob, validateRecurringJob } = require('../validators/jobValidator');
+const { clearCache } = require('../middleware/cacheMiddleware');
 
 /**
  * @desc    Create a one-time job
@@ -62,6 +63,10 @@ const createOneTimeJob = async (req, res, next) => {
         }
 
         const job = await Job.create(jobData);
+
+        // Clear cache after job creation
+        clearCache('jobs');
+        clearCache('stats');
 
         // Return success response
         return ApiResponse.created(res, 'One-time job created successfully', {
@@ -138,6 +143,10 @@ const createRecurringJob = async (req, res, next) => {
         }
 
         const job = await Job.create(jobData);
+
+        // Clear cache after job creation
+        clearCache('jobs');
+        clearCache('stats');
 
         // Return success response
         return ApiResponse.created(res, 'Recurring job created successfully', {
@@ -263,6 +272,10 @@ const cancelJob = async (req, res, next) => {
             { $set: { status: 'BLOCKED' } }
         );
 
+        // Clear cache after job cancellation
+        clearCache('jobs');
+        clearCache('stats');
+
         return ApiResponse.success(res, 200, 'Job cancelled successfully', {
             job: {
                 jobId: job.jobId,
@@ -300,6 +313,10 @@ const pauseJob = async (req, res, next) => {
 
         await job.pause();
 
+        // Clear cache after job pause
+        clearCache('jobs');
+        clearCache('stats');
+
         return ApiResponse.success(res, 200, 'Job paused successfully', {
             job: {
                 jobId: job.jobId,
@@ -332,6 +349,10 @@ const resumeJob = async (req, res, next) => {
         }
 
         await job.resume();
+
+        // Clear cache after job resume
+        clearCache('jobs');
+        clearCache('stats');
 
         return ApiResponse.success(res, 200, 'Job resumed successfully', {
             job: {
@@ -421,6 +442,10 @@ const updateJob = async (req, res, next) => {
 
         await job.save();
 
+        // Clear cache after job update
+        clearCache('jobs');
+        clearCache('stats');
+
         return ApiResponse.success(res, 200, 'Job updated successfully', {
             job: {
                 jobId: job.jobId,
@@ -460,6 +485,10 @@ const deleteJob = async (req, res, next) => {
         // Auto-delete after 5 days
         job.expireAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
         await job.save();
+
+        // Clear cache after job deletion
+        clearCache('jobs');
+        clearCache('stats');
 
         return ApiResponse.success(res, 200, 'Job deleted successfully', {
             jobId: job.jobId
