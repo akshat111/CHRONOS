@@ -40,19 +40,13 @@ The cool thing is, I recently added a caching layer to these APIs. So frequently
 
 ## About the Dashboard
 
-Now let me show you the dashboard, which is the user-facing part of CHRONOS. 
+Now let me show you the dashboard. When you first open it, you see key metrics at the top - total jobs, running, completed, and failed jobs.
 
-When you first open it, you see this clean overview with key metrics at the top. We have total jobs, running jobs, completed jobs, and failed jobs - all updating in real time.
+Below that, we have two charts. The execution trend shows success and failure rates over time, and you can switch between different time periods. The pie chart shows the distribution of job statuses at a glance.
 
-Below that, we have two charts. The execution trend chart shows you how many jobs succeeded or failed over time. You can switch between different time periods - last hour, six hours, twenty-four hours, or seven days. Notice how smooth this is now, thanks to the caching layer I added. It doesn't reload the entire page anymore.
+On the Jobs page, you can see all your jobs in a table. You can search, filter, and perform actions like editing, pausing, or deleting. Each job has a menu for viewing logs, editing details, or managing its status.
 
-The pie chart on the right shows the distribution of job statuses. It's a quick way to see the health of your system at a glance.
-
-Now let's go to the Jobs page. Here you can see all your jobs in a nice table format. You can search, filter by status or type, and perform actions like editing, pausing, or deleting jobs. Each job has a menu with options - you can view logs, edit the job, pause it if it's recurring, or cancel it if needed.
-
-Let me create a new job from the UI. I'll click Create Job, fill in the details - job name, task type, schedule time, and any payload data. And just like that, it's created and scheduled.
-
-If I click on View Logs for any job, I can see the complete execution history. Each log entry shows when it ran, how long it took, and whether it succeeded or failed. This is invaluable for troubleshooting.
+Creating a new job is simple - just click Create Job, fill in the details, and it's scheduled. And if you need to troubleshoot, the logs page shows complete execution history with timestamps and status for each run.
 
 ---
 

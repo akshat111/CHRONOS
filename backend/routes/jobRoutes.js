@@ -15,11 +15,8 @@ const {
 
 const asyncHandler = require('../middleware/asyncHandler');
 const { cacheMiddleware } = require('../middleware/cacheMiddleware');
-
-
 const { authenticate } = require('../middleware/authMiddleware');
 router.use(authenticate);
-
 router.post('/', asyncHandler(async (req, res, next) => {
     const { jobType } = req.body;
 
@@ -29,11 +26,8 @@ router.post('/', asyncHandler(async (req, res, next) => {
         return createOneTimeJob(req, res, next);
     }
 }));
-
 router.post('/one-time', asyncHandler(createOneTimeJob));
-
 router.post('/recurring', asyncHandler(createRecurringJob));
-
 router.get('/', cacheMiddleware(15, (req) => {
     const { status, jobType, page = 1, limit = 50 } = req.query;
     return `jobs:${status || 'all'}:${jobType || 'all'}:${page}:${limit}`;
