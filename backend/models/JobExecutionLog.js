@@ -1,258 +1,92 @@
 const mongoose = require('mongoose');
-
-/**
- * JobExecutionLog Schema
- * 
- * This model tracks every execution attempt of a job.
- * It provides a complete audit trail for debugging, monitoring,
- * and analytics purposes.
- * 
- * WHY SEPARATE FROM JOB MODEL?
- * - Jobs get updated frequently; logs are append-only
- * - Recurring jobs have many executions; storing all in Job would bloat it
- * - Enables efficient querying of execution history without loading job details
- * - Supports analytics and reporting on job performance
- */
 const jobExecutionLogSchema = new mongoose.Schema(
     {
-        // ═══════════════════════════════════════════════════════════════
-        // JOB REFERENCE
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * Reference to the parent Job document
-         * Why: Links this log entry to its job for queries and population
-         * Indexed for efficient lookups
-         */
         job: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Job',
             required: true,
             index: true
         },
-
-        /**
-         * Copy of jobId for convenience
-         * Why: Allows querying without needing to populate job reference
-         * Useful for logging and external systems
-         */
         jobId: {
             type: String,
             required: true,
             index: true
         },
-
-        /**
-         * Copy of job name at execution time
-         * Why: Job names might change; this preserves what it was called when run
-         */
         jobName: {
             type: String,
             required: true
         },
-
-        /**
-         * Task type that was executed
-         * Why: Track which handler processed this job
-         */
         taskType: {
             type: String,
             required: true,
             index: true
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // EXECUTION TIMING
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * When the job was scheduled to run
-         * Why: Compare scheduled vs actual execution time
-         */
         scheduledTime: {
             type: Date,
             required: true
         },
-
-        /**
-         * When the job actually started executing
-         * Why: Track when the worker picked up and started the job
-         * Difference from scheduledTime shows queue delay
-         */
         executionStartTime: {
             type: Date,
             required: true,
             default: Date.now
         },
-
-        /**
-         * When the job finished executing
-         * Why: Calculate duration and track completion time
-         */
         executionEndTime: {
             type: Date
         },
-
-        /**
-         * Duration of execution in milliseconds
-         * Why: Performance monitoring - identify slow jobs
-         * Calculated as: executionEndTime - executionStartTime
-         */
         duration: {
             type: Number,
             min: 0
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // EXECUTION STATUS
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * Outcome of the execution
-         * Why: Know whether job succeeded or failed
-         * 
-         * SUCCESS  → Job completed without errors
-         * FAILED   → Job threw an error or timed out
-         * TIMEOUT  → Job exceeded max execution time
-         * SKIPPED  → Job was skipped (e.g., duplicate prevention)
-         */
         status: {
             type: String,
             required: true,
             enum: ['SUCCESS', 'FAILED', 'TIMEOUT', 'SKIPPED', 'RUNNING'],
             index: true
         },
-
-        /**
-         * Which retry attempt this was
-         * Why: Track retry progression
-         * 0 = first attempt, 1 = first retry, etc.
-         */
         retryAttempt: {
             type: Number,
             required: true,
             default: 0,
             min: 0
         },
-
-        /**
-         * Was this execution a retry?
-         * Why: Quick flag to filter initial runs vs retries
-         */
         isRetry: {
             type: Boolean,
             default: false
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // ERROR INFORMATION
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * Error message if job failed
-         * Why: Quick access to failure reason
-         */
         errorMessage: {
             type: String
         },
-
-        /**
-         * Full error stack trace
-         * Why: Debugging - shows exactly where the error occurred
-         */
         errorStack: {
             type: String
         },
-
-        /**
-         * Error code/type
-         * Why: Categorize errors for analytics
-         * Example: "NETWORK_ERROR", "VALIDATION_ERROR", "TIMEOUT"
-         */
         errorCode: {
             type: String,
             index: true
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // EXECUTION DETAILS
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * ID of the worker that executed this job
-         * Why: Debug issues - identify problematic workers
-         * Format: "worker_1", "worker_abc123"
-         */
         workerId: {
             type: String,
             required: true,
             index: true
         },
-
-        /**
-         * Hostname/IP of the machine that ran the job
-         * Why: Debug infrastructure issues
-         */
         workerHost: {
             type: String
         },
-
-        /**
-         * Job payload at execution time
-         * Why: Record exactly what data was processed
-         * Useful for debugging and replaying failed jobs
-         */
         payload: {
             type: mongoose.Schema.Types.Mixed
         },
-
-        /**
-         * Result returned by the job handler
-         * Why: Store output for reference and debugging
-         * Example: { emailsSent: 50, successRate: 0.98 }
-         */
         result: {
             type: mongoose.Schema.Types.Mixed
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // RESOURCE METRICS
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * Memory used during execution (in bytes)
-         * Why: Monitor resource consumption, detect memory leaks
-         */
         memoryUsage: {
             type: Number
         },
-
-        /**
-         * CPU time used (in milliseconds)
-         * Why: Identify CPU-intensive jobs
-         */
         cpuTime: {
             type: Number
         },
-
-        // ═══════════════════════════════════════════════════════════════
-        // CONTEXT & METADATA
-        // ═══════════════════════════════════════════════════════════════
-
-        /**
-         * Additional context/metadata
-         * Why: Store any extra info that might be useful for debugging
-         * Example: { requestId: "req_123", correlationId: "abc" }
-         */
         metadata: {
             type: mongoose.Schema.Types.Mixed,
             default: {}
         },
-
-        /**
-         * Log messages collected during execution
-         * Why: Capture stdout/console output from job
-         */
         logs: [{
             level: {
                 type: String,
@@ -262,11 +96,6 @@ const jobExecutionLogSchema = new mongoose.Schema(
             timestamp: Date,
             data: mongoose.Schema.Types.Mixed
         }],
-
-        /**
-         * Environment/context where this ran
-         * Why: Distinguish between dev, staging, production runs
-         */
         environment: {
             type: String,
             default: 'production'
@@ -278,27 +107,9 @@ const jobExecutionLogSchema = new mongoose.Schema(
         toObject: { virtuals: true }
     }
 );
-
-// ═══════════════════════════════════════════════════════════════════════
-// INDEXES
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Compound index for querying job execution history
- * Why: Common query pattern - get all executions for a job, sorted by time
- */
 jobExecutionLogSchema.index({ job: 1, executionStartTime: -1 });
-
-/**
- * Compound index for finding failed executions
- * Why: Quickly find failures for a specific job or across all jobs
- */
 jobExecutionLogSchema.index({ status: 1, executionStartTime: -1 });
 
-/**
- * Index for date-range queries
- * Why: Analytics and reporting by time period
- */
 jobExecutionLogSchema.index({ executionStartTime: -1 });
 
 /**
