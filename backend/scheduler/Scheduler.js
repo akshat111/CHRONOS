@@ -1,27 +1,3 @@
-/**
- * Scheduler Service
- * 
- * The main scheduler that orchestrates job execution:
- * 1. Polls MongoDB for due jobs at regular intervals
- * 2. Uses distributed locking to prevent duplicate execution
- * 3. Dispatches jobs to the executor
- * 4. Handles graceful shutdown
- * 
- * ARCHITECTURE:
- * ┌─────────────────────────────────────────────────────────────┐
- * │                    Scheduler Service                        │
- * ├─────────────────────────────────────────────────────────────┤
- * │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
- * │  │ Poll Loop   │→ │ Job Picker  │→ │   Job Executor      │  │
- * │  │ (Interval)  │  │ (Atomic)    │  │   (w/ Handlers)     │  │
- * │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
- * │         ↑                                    ↓              │
- * │  ┌─────────────┐                    ┌────────────────┐      │
- * │  │Lock Manager │                    │ Execution Log  │      │
- * │  │(Distributed)│                    │   (MongoDB)    │      │
- * │  └─────────────┘                    └────────────────┘      │
- * └─────────────────────────────────────────────────────────────┘
- */
 
 const EventEmitter = require('events');
 const { LockManager } = require('./LockManager');
@@ -29,15 +5,7 @@ const JobPicker = require('./JobPicker');
 const JobExecutor = require('./JobExecutor');
 
 class Scheduler extends EventEmitter {
-    /**
-     * Create a new Scheduler instance
-     * 
-     * @param {Object} options - Configuration
-     * @param {number} options.pollInterval - How often to check for jobs (ms)
-     * @param {number} options.concurrency - Max jobs to run in parallel
-     * @param {number} options.lockTimeout - Job lock timeout (ms)
-     * @param {Object} options.taskHandlers - Map of taskType -> handler
-     */
+
     constructor(options = {}) {
         super();
 
@@ -83,22 +51,11 @@ class Scheduler extends EventEmitter {
         console.log(`[Scheduler] Initialized with workerId: ${this.workerId}`);
     }
 
-    /**
-     * Register a task handler
-     * 
-     * @param {string} taskType - Task type identifier
-     * @param {Function} handler - Async handler function
-     */
     registerHandler(taskType, handler) {
         this.executor.registerHandler(taskType, handler);
         return this; // Allow chaining
     }
 
-    /**
-     * Start the scheduler
-     * 
-     * Begins polling for jobs and processing them.
-     */
     async start() {
         if (this.isRunning) {
             console.log('[Scheduler] Already running');
@@ -132,11 +89,6 @@ class Scheduler extends EventEmitter {
         console.log(`[Scheduler] Started. Polling every ${this.pollInterval}ms`);
     }
 
-    /**
-     * Stop the scheduler
-     * 
-     * Stops polling and waits for active jobs to complete.
-     */
     async stop() {
         if (!this.isRunning) {
             console.log('[Scheduler] Not running');
@@ -177,11 +129,6 @@ class Scheduler extends EventEmitter {
         console.log('[Scheduler] Stopped');
     }
 
-    /**
-     * Poll for due jobs and process them
-     * 
-     * This is the main loop of the scheduler.
-     */
     async poll() {
         if (!this.isRunning) return;
 
@@ -212,13 +159,6 @@ class Scheduler extends EventEmitter {
         }
     }
 
-    /**
-     * Process a single job
-     * 
-     * Runs the job executor and handles the result.
-     * 
-     * @param {Object} job - Job document
-     */
     async processJob(job) {
         // Track active job
         const jobPromise = (async () => {
@@ -260,9 +200,6 @@ class Scheduler extends EventEmitter {
         this.activeJobs.set(job.jobId, jobPromise);
     }
 
-    /**
-     * Setup graceful shutdown handlers
-     */
     setupShutdownHandlers() {
         const shutdown = async (signal) => {
             console.log(`[Scheduler] Received ${signal}. Starting graceful shutdown...`);
@@ -274,11 +211,6 @@ class Scheduler extends EventEmitter {
         process.on('SIGINT', () => shutdown('SIGINT'));
     }
 
-    /**
-     * Get scheduler statistics
-     * 
-     * @returns {Object} - Current stats
-     */
     getStats() {
         return {
             ...this.stats,

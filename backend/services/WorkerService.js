@@ -1,16 +1,3 @@
-/**
- * Worker Service
- * 
- * A robust worker service that:
- * 1. Picks jobs from the queue
- * 2. Executes them through registered handlers
- * 3. Logs execution results to JobExecutionLog
- * 4. Handles errors gracefully
- * 5. Supports graceful shutdown
- * 
- * This is a more complete implementation with detailed logging
- * and execution tracking.
- */
 
 const EventEmitter = require('events');
 const Job = require('../models/Job');
@@ -18,16 +5,7 @@ const JobExecutionLog = require('../models/JobExecutionLog');
 const os = require('os');
 
 class WorkerService extends EventEmitter {
-    /**
-     * Create a new WorkerService
-     * 
-     * @param {Object} options - Configuration
-     * @param {string} options.workerId - Unique worker identifier
-     * @param {number} options.pollInterval - Polling interval in ms
-     * @param {number} options.concurrency - Max parallel jobs
-     * @param {number} options.jobTimeout - Default job timeout in ms
-     * @param {Object} options.handlers - Initial task handlers
-     */
+
     constructor(options = {}) {
         super();
 
@@ -68,13 +46,6 @@ class WorkerService extends EventEmitter {
         console.log(`[WorkerService] Initialized: ${this.workerId}`);
     }
 
-    /**
-     * Register a task handler
-     * 
-     * @param {string} taskType - Task type identifier
-     * @param {Function} handler - Async handler function (payload, job) => result
-     * @returns {this} - For chaining
-     */
     registerHandler(taskType, handler) {
         if (typeof handler !== 'function') {
             throw new Error('Handler must be a function');
@@ -84,18 +55,10 @@ class WorkerService extends EventEmitter {
         return this;
     }
 
-    /**
-     * Unregister a task handler
-     * 
-     * @param {string} taskType - Task type to remove
-     */
     unregisterHandler(taskType) {
         this.handlers.delete(taskType);
     }
 
-    /**
-     * Start the worker
-     */
     async start() {
         if (this.isRunning) {
             console.log('[WorkerService] Already running');
@@ -120,11 +83,6 @@ class WorkerService extends EventEmitter {
         console.log(`[WorkerService] Started. Polling every ${this.pollInterval}ms`);
     }
 
-    /**
-     * Stop the worker gracefully
-     * 
-     * @param {boolean} waitForJobs - Wait for active jobs to complete
-     */
     async stop(waitForJobs = true) {
         if (!this.isRunning) return;
 
@@ -160,27 +118,18 @@ class WorkerService extends EventEmitter {
         console.log('[WorkerService] Stopped');
     }
 
-    /**
-     * Pause job processing
-     */
     pause() {
         this.isPaused = true;
         console.log('[WorkerService] Paused');
         this.emit('paused');
     }
 
-    /**
-     * Resume job processing
-     */
     resume() {
         this.isPaused = false;
         console.log('[WorkerService] Resumed');
         this.emit('resumed');
     }
 
-    /**
-     * Poll for due jobs
-     */
     async poll() {
         if (!this.isRunning || this.isPaused) return;
 
@@ -202,12 +151,6 @@ class WorkerService extends EventEmitter {
         }
     }
 
-    /**
-     * Pick jobs from the queue atomically
-     * 
-     * @param {number} limit - Max jobs to pick
-     * @returns {Array} - Claimed jobs
-     */
     async pickJobs(limit) {
         const now = new Date();
         const staleThreshold = new Date(now.getTime() - this.lockTimeout);
@@ -249,11 +192,6 @@ class WorkerService extends EventEmitter {
         return jobs;
     }
 
-    /**
-     * Process a single job
-     * 
-     * @param {Object} job - Job document
-     */
     async processJob(job) {
         const jobPromise = this.executeJob(job).finally(() => {
             this.activeJobs.delete(job.jobId);
@@ -262,12 +200,6 @@ class WorkerService extends EventEmitter {
         this.activeJobs.set(job.jobId, jobPromise);
     }
 
-    /**
-     * Execute a job with full lifecycle management
-     * 
-     * @param {Object} job - Job document
-     * @returns {Object} - Execution result
-     */
     async executeJob(job) {
         const startTime = Date.now();
         let executionLog = null;
@@ -356,13 +288,6 @@ class WorkerService extends EventEmitter {
         }
     }
 
-    /**
-     * Execute a function with timeout
-     * 
-     * @param {Function} fn - Function to execute
-     * @param {number} timeout - Timeout in ms
-     * @returns {Promise<any>} - Result
-     */
     executeWithTimeout(fn, timeout) {
         return Promise.race([
             fn(),
@@ -372,9 +297,6 @@ class WorkerService extends EventEmitter {
         ]);
     }
 
-    /**
-     * Log successful execution
-     */
     async logSuccess(executionLog, result, duration) {
         executionLog.status = 'SUCCESS';
         executionLog.executionEndTime = new Date();
@@ -384,9 +306,6 @@ class WorkerService extends EventEmitter {
         await executionLog.save();
     }
 
-    /**
-     * Log failed execution
-     */
     async logFailure(executionLog, error, duration) {
         executionLog.status = error.message.includes('timeout') ? 'TIMEOUT' : 'FAILED';
         executionLog.executionEndTime = new Date();
@@ -398,9 +317,6 @@ class WorkerService extends EventEmitter {
         await executionLog.save();
     }
 
-    /**
-     * Handle successful job completion
-     */
     async handleJobSuccess(job, result, duration) {
         const updateData = {
             lastRunAt: new Date(),
@@ -430,9 +346,6 @@ class WorkerService extends EventEmitter {
         await Job.updateOne({ _id: job._id }, { $set: updateData });
     }
 
-    /**
-     * Handle job failure
-     */
     async handleJobFailure(job, error) {
         const newRetryCount = (job.retryCount || 0) + 1;
         const canRetry = newRetryCount < (job.maxRetries || 3);
@@ -468,9 +381,6 @@ class WorkerService extends EventEmitter {
         await Job.updateOne({ _id: job._id }, { $set: updateData });
     }
 
-    /**
-     * Calculate next run time for recurring jobs
-     */
     calculateNextRun(job) {
         const now = new Date();
 
@@ -487,9 +397,6 @@ class WorkerService extends EventEmitter {
         return null;
     }
 
-    /**
-     * Classify error for analytics
-     */
     classifyError(error) {
         const message = error.message.toLowerCase();
 
@@ -503,9 +410,6 @@ class WorkerService extends EventEmitter {
         return 'UNKNOWN_ERROR';
     }
 
-    /**
-     * Release all jobs held by this worker
-     */
     async releaseAllJobs() {
         const result = await Job.updateMany(
             { lockedBy: this.workerId },
@@ -523,9 +427,6 @@ class WorkerService extends EventEmitter {
         }
     }
 
-    /**
-     * Update statistics
-     */
     updateStats(success, duration) {
         this.stats.jobsProcessed++;
         if (success) {
@@ -537,9 +438,6 @@ class WorkerService extends EventEmitter {
         this.stats.lastJobAt = new Date();
     }
 
-    /**
-     * Get worker statistics
-     */
     getStats() {
         const now = Date.now();
         return {
@@ -559,9 +457,6 @@ class WorkerService extends EventEmitter {
         };
     }
 
-    /**
-     * Setup graceful shutdown handlers
-     */
     setupShutdownHandlers() {
         const shutdown = async (signal) => {
             console.log(`\n[WorkerService] Received ${signal}. Starting graceful shutdown...`);

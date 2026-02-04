@@ -1,26 +1,3 @@
-/**
- * Retry Manager
- * 
- * Centralized retry logic for job execution with:
- * - Multiple backoff strategies
- * - Configurable retry policies
- * - Retry attempt logging
- * - Circuit breaker pattern support
- * 
- * RETRY STRATEGIES:
- * 
- * 1. FIXED: Same delay every time
- *    [1min] → [1min] → [1min] → FAILED
- * 
- * 2. EXPONENTIAL: Delay doubles each time
- *    [1min] → [2min] → [4min] → [8min] → FAILED
- * 
- * 3. LINEAR: Delay increases by fixed amount
- *    [1min] → [2min] → [3min] → [4min] → FAILED
- * 
- * 4. FIBONACCI: Delay follows fibonacci sequence
- *    [1min] → [1min] → [2min] → [3min] → [5min] → FAILED
- */
 
 const JobExecutionLog = require('../models/JobExecutionLog');
 
@@ -43,22 +20,11 @@ const DEFAULT_CONFIG = {
 };
 
 class RetryManager {
-    /**
-     * Create a new RetryManager
-     * 
-     * @param {Object} config - Retry configuration
-     */
+
     constructor(config = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };
     }
 
-    /**
-     * Calculate the delay before next retry
-     * 
-     * @param {number} attemptNumber - Current retry attempt (0-indexed)
-     * @param {Object} jobConfig - Job-specific retry config
-     * @returns {number} - Delay in milliseconds
-     */
     calculateDelay(attemptNumber, jobConfig = {}) {
         const baseDelay = jobConfig.retryDelay || this.config.baseDelay;
         const strategy = jobConfig.retryStrategy || this.config.strategy;
@@ -100,9 +66,6 @@ class RetryManager {
         return Math.round(delay);
     }
 
-    /**
-     * Fibonacci number calculator
-     */
     fibonacci(n) {
         if (n <= 1) return 1;
         let a = 1, b = 1;
@@ -112,48 +75,24 @@ class RetryManager {
         return b;
     }
 
-    /**
-     * Add jitter (randomness) to delay
-     * Prevents "thundering herd" when many retries happen at same time
-     */
     addJitter(delay) {
         const jitterRange = delay * this.config.jitterFactor;
         const jitter = (Math.random() * 2 - 1) * jitterRange;
         return Math.max(0, delay + jitter);
     }
 
-    /**
-     * Check if a job can be retried
-     * 
-     * @param {Object} job - Job document
-     * @returns {boolean} - Whether retry is possible
-     */
     canRetry(job) {
         const maxRetries = job.maxRetries ?? this.config.maxRetries;
         const currentAttempt = job.retryCount || 0;
         return currentAttempt < maxRetries;
     }
 
-    /**
-     * Get remaining retry attempts
-     * 
-     * @param {Object} job - Job document
-     * @returns {number} - Remaining attempts
-     */
     getRemainingRetries(job) {
         const maxRetries = job.maxRetries ?? this.config.maxRetries;
         const currentAttempt = job.retryCount || 0;
         return Math.max(0, maxRetries - currentAttempt);
     }
 
-    /**
-     * Determine if an error is retryable
-     * 
-     * Some errors should not be retried (e.g., validation errors)
-     * 
-     * @param {Error} error - The error that occurred
-     * @returns {boolean} - Whether to retry
-     */
     isRetryableError(error) {
         const message = error.message.toLowerCase();
 
@@ -178,14 +117,6 @@ class RetryManager {
         return true;
     }
 
-    /**
-     * Process a job failure and schedule retry if applicable
-     * 
-     * @param {Object} job - Job document
-     * @param {Error} error - The error that occurred
-     * @param {Object} Job - Mongoose Job model
-     * @returns {Object} - Retry decision and details
-     */
     async handleFailure(job, error, Job) {
         const currentAttempt = (job.retryCount || 0) + 1;
         const maxRetries = job.maxRetries ?? this.config.maxRetries;
@@ -244,11 +175,6 @@ class RetryManager {
         return result;
     }
 
-    /**
-     * Log a retry attempt to JobExecutionLog
-     * 
-     * @param {Object} params - Log parameters
-     */
     async logRetryAttempt(params) {
         const {
             job,
@@ -296,9 +222,6 @@ class RetryManager {
         }
     }
 
-    /**
-     * Classify error for analytics
-     */
     classifyError(error) {
         const message = error.message.toLowerCase();
 
@@ -314,9 +237,6 @@ class RetryManager {
         return 'UNKNOWN_ERROR';
     }
 
-    /**
-     * Format duration for logging
-     */
     formatDuration(ms) {
         if (ms < 1000) return `${ms}ms`;
         if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
@@ -324,9 +244,6 @@ class RetryManager {
         return `${(ms / 3600000).toFixed(1)}h`;
     }
 
-    /**
-     * Get retry configuration summary
-     */
     getConfig() {
         return {
             ...this.config,
@@ -334,9 +251,6 @@ class RetryManager {
         };
     }
 
-    /**
-     * Get human-readable strategy description
-     */
     getStrategyDescription() {
         const { strategy, baseDelay, maxRetries } = this.config;
         const baseSeconds = baseDelay / 1000;

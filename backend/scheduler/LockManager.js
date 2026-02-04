@@ -1,15 +1,3 @@
-/**
- * Distributed Lock Manager
- * 
- * Provides distributed locking using MongoDB's atomic operations.
- * Prevents multiple scheduler/worker instances from processing the same job.
- * 
- * HOW IT WORKS:
- * 1. Uses MongoDB's findOneAndUpdate with atomic conditions
- * 2. Only one process can acquire a lock at a time
- * 3. Locks have TTL (time-to-live) for automatic expiration
- * 4. Stale locks are automatically released
- */
 
 const mongoose = require('mongoose');
 
@@ -53,31 +41,13 @@ const lockSchema = new mongoose.Schema({
 const Lock = mongoose.model('Lock', lockSchema);
 
 class LockManager {
-    /**
-     * Create a new LockManager instance
-     * @param {Object} options - Configuration options
-     * @param {string} options.workerId - Unique identifier for this worker/process
-     * @param {number} options.defaultTTL - Default lock TTL in milliseconds (default: 30 seconds)
-     */
+
     constructor(options = {}) {
         this.workerId = options.workerId || `worker_${process.pid}_${Date.now()}`;
         this.defaultTTL = options.defaultTTL || 30000; // 30 seconds
         this.activeLocks = new Map(); // Track locks held by this instance
     }
 
-    /**
-     * Attempt to acquire a lock
-     * 
-     * Uses MongoDB's findOneAndUpdate with upsert for atomic lock acquisition.
-     * The query conditions ensure only ONE process can succeed:
-     * - Lock doesn't exist, OR
-     * - Lock exists but is expired, OR
-     * - Lock exists and is held by the same worker (renewal)
-     * 
-     * @param {string} lockId - Unique identifier for the lock
-     * @param {number} ttl - Lock TTL in milliseconds (optional)
-     * @returns {Promise<boolean>} - Whether the lock was acquired
-     */
     async acquire(lockId, ttl = null) {
         const lockTTL = ttl || this.defaultTTL;
         const now = new Date();
@@ -133,14 +103,6 @@ class LockManager {
         }
     }
 
-    /**
-     * Release a lock
-     * 
-     * Only releases the lock if it's held by this worker.
-     * 
-     * @param {string} lockId - Lock to release
-     * @returns {Promise<boolean>} - Whether the lock was released
-     */
     async release(lockId) {
         try {
             const result = await Lock.deleteOne({
@@ -162,15 +124,6 @@ class LockManager {
         }
     }
 
-    /**
-     * Renew/extend a lock's TTL
-     * 
-     * Used to keep a lock alive during long-running operations.
-     * 
-     * @param {string} lockId - Lock to renew
-     * @param {number} ttl - New TTL in milliseconds
-     * @returns {Promise<boolean>} - Whether the lock was renewed
-     */
     async renew(lockId, ttl = null) {
         const lockTTL = ttl || this.defaultTTL;
         const expiresAt = new Date(Date.now() + lockTTL);
@@ -203,17 +156,6 @@ class LockManager {
         }
     }
 
-    /**
-     * Acquire a lock with automatic renewal
-     * 
-     * Starts a background interval to periodically renew the lock.
-     * Useful for long-running scheduled tasks.
-     * 
-     * @param {string} lockId - Lock to acquire
-     * @param {number} ttl - Lock TTL in milliseconds
-     * @param {number} renewInterval - How often to renew (default: TTL/2)
-     * @returns {Promise<boolean>} - Whether the lock was acquired
-     */
     async acquireWithRenewal(lockId, ttl = null, renewInterval = null) {
         const lockTTL = ttl || this.defaultTTL;
         const interval = renewInterval || Math.floor(lockTTL / 2);
@@ -240,22 +182,11 @@ class LockManager {
         return true;
     }
 
-    /**
-     * Check if a lock is currently held by this worker
-     * 
-     * @param {string} lockId - Lock to check
-     * @returns {Promise<boolean>} - Whether we hold the lock
-     */
     async isHeldByMe(lockId) {
         const lock = await Lock.findOne({ lockId, holder: this.workerId });
         return lock !== null && lock.expiresAt > new Date();
     }
 
-    /**
-     * Release all locks held by this worker
-     * 
-     * Call this during graceful shutdown.
-     */
     async releaseAll() {
         const lockIds = Array.from(this.activeLocks.keys());
 
@@ -266,17 +197,6 @@ class LockManager {
         console.log(`Released ${lockIds.length} locks held by ${this.workerId}`);
     }
 
-    /**
-     * Execute a function while holding a lock
-     * 
-     * Acquires the lock, executes the function, then releases the lock.
-     * Automatically handles errors and ensures lock is released.
-     * 
-     * @param {string} lockId - Lock to acquire
-     * @param {Function} fn - Function to execute
-     * @param {number} ttl - Lock TTL
-     * @returns {Promise<Object>} - { success: boolean, result: any, error: Error }
-     */
     async withLock(lockId, fn, ttl = null) {
         const acquired = await this.acquire(lockId, ttl);
 

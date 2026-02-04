@@ -1,53 +1,14 @@
-/**
- * Job Picker
- * 
- * Responsible for finding and claiming jobs that are due for execution.
- * Uses atomic MongoDB operations to prevent duplicate job pickup.
- * 
- * KEY CONCEPTS:
- * 1. Atomic Claim: Uses findOneAndUpdate to atomically claim a job
- * 2. Lock Window: Jobs are locked for a specified duration
- * 3. Stale Lock Recovery: Reclaims jobs with expired locks
- */
 
 const Job = require('../models/Job');
 
 class JobPicker {
-    /**
-     * Create a new JobPicker
-     * @param {Object} options - Configuration
-     * @param {string} options.workerId - Unique worker identifier
-     * @param {number} options.lockTimeout - Lock duration in ms (default: 5 minutes)
-     * @param {number} options.batchSize - Max jobs to pick at once (default: 10)
-     */
+
     constructor(options = {}) {
         this.workerId = options.workerId || `picker_${process.pid}_${Date.now()}`;
         this.lockTimeout = options.lockTimeout || 300000; // 5 minutes
         this.batchSize = options.batchSize || 10;
     }
 
-    /**
-     * Pick a single due job atomically
-     * 
-     * HOW DUPLICATE EXECUTION IS PREVENTED:
-     * 
-     * 1. We use findOneAndUpdate with specific conditions:
-     *    - status must be 'SCHEDULED'
-     *    - nextRunAt must be <= current time
-     *    - Either no lock exists, OR the lock is expired
-     * 
-     * 2. In the SAME atomic operation, we:
-     *    - Set status to 'QUEUED'
-     *    - Set lockedBy to our worker ID
-     *    - Set lockedAt to current time
-     * 
-     * 3. Since MongoDB's findOneAndUpdate is atomic:
-     *    - Only ONE worker can successfully match and update
-     *    - Other workers will get null (no match)
-     *    - This guarantees exactly-once pickup
-     * 
-     * @returns {Promise<Object|null>} - The claimed job or null
-     */
     async pickOne() {
         const now = new Date();
         const staleThreshold = new Date(now.getTime() - this.lockTimeout);
@@ -96,15 +57,6 @@ class JobPicker {
         }
     }
 
-    /**
-     * Pick multiple due jobs atomically
-     * 
-     * For efficiency in high-throughput scenarios.
-     * Each job is claimed individually to ensure atomicity.
-     * 
-     * @param {number} count - Maximum jobs to pick
-     * @returns {Promise<Array>} - Array of claimed jobs
-     */
     async pickMany(count = null) {
         const limit = count || this.batchSize;
         const jobs = [];
@@ -118,11 +70,6 @@ class JobPicker {
         return jobs;
     }
 
-    /**
-     * Count jobs that are due for execution
-     * 
-     * @returns {Promise<number>} - Number of due jobs
-     */
     async countDueJobs() {
         const now = new Date();
         const staleThreshold = new Date(now.getTime() - this.lockTimeout);
@@ -139,14 +86,6 @@ class JobPicker {
         });
     }
 
-    /**
-     * Release a job (put it back to SCHEDULED)
-     * 
-     * Used when a worker can't process a job or shuts down gracefully.
-     * 
-     * @param {Object} job - The job to release
-     * @returns {Promise<boolean>} - Whether the job was released
-     */
     async release(job) {
         try {
             const result = await Job.updateOne(
@@ -170,13 +109,6 @@ class JobPicker {
         }
     }
 
-    /**
-     * Release all jobs held by this worker
-     * 
-     * Call during graceful shutdown.
-     * 
-     * @returns {Promise<number>} - Number of jobs released
-     */
     async releaseAll() {
         const result = await Job.updateMany(
             { lockedBy: this.workerId },
@@ -193,17 +125,6 @@ class JobPicker {
         return result.modifiedCount;
     }
 
-    /**
-     * Recover stale jobs globally
-     * 
-     * Finds jobs that were locked but never completed (worker crashed).
-     * Resets them to SCHEDULED so they can be picked again.
-     * 
-     * Run this periodically (e.g., every minute).
-     * 
-     * @param {number} staleThreshold - Age in ms to consider stale
-     * @returns {Promise<number>} - Number of jobs recovered
-     */
     async recoverStaleJobs(staleThreshold = null) {
         const threshold = staleThreshold || this.lockTimeout;
         const cutoff = new Date(Date.now() - threshold);

@@ -1,26 +1,10 @@
-/**
- * Job Executor
- * 
- * Responsible for executing individual jobs:
- * 1. Runs the job's task handler
- * 2. Updates job status (COMPLETED/FAILED)
- * 3. Handles recurring job rescheduling
- * 4. Creates execution logs
- * 5. Manages retry logic
- */
 
 const Job = require('../models/Job');
 const JobExecutionLog = require('../models/JobExecutionLog');
 const os = require('os');
 
 class JobExecutor {
-    /**
-     * Create a new JobExecutor
-     * @param {Object} options - Configuration
-     * @param {string} options.workerId - Unique worker identifier
-     * @param {Object} options.taskHandlers - Map of taskType -> handler function
-     * @param {number} options.defaultTimeout - Default job timeout in ms
-     */
+
     constructor(options = {}) {
         this.workerId = options.workerId || `executor_${process.pid}_${Date.now()}`;
         this.taskHandlers = options.taskHandlers || {};
@@ -28,23 +12,11 @@ class JobExecutor {
         this.hostname = os.hostname();
     }
 
-    /**
-     * Register a task handler
-     * 
-     * @param {string} taskType - Task type identifier
-     * @param {Function} handler - Async function to execute
-     */
     registerHandler(taskType, handler) {
         this.taskHandlers[taskType] = handler;
         console.log(`[JobExecutor] Registered handler for: ${taskType}`);
     }
 
-    /**
-     * Execute a job
-     * 
-     * @param {Object} job - Job document from MongoDB
-     * @returns {Promise<Object>} - Execution result
-     */
     async execute(job) {
         const startTime = Date.now();
 
@@ -117,13 +89,6 @@ class JobExecutor {
         }
     }
 
-    /**
-     * Execute a function with a timeout
-     * 
-     * @param {Function} fn - Function to execute
-     * @param {number} timeout - Timeout in ms
-     * @returns {Promise<any>} - Function result
-     */
     async executeWithTimeout(fn, timeout) {
         return Promise.race([
             fn(),
@@ -133,16 +98,6 @@ class JobExecutor {
         ]);
     }
 
-    /**
-     * Handle successful job completion
-     * 
-     * For one-time jobs: Mark as COMPLETED
-     * For recurring jobs: Calculate next run time and reschedule
-     * 
-     * @param {Object} job - The completed job
-     * @param {any} result - Execution result
-     * @param {number} duration - Execution time in ms
-     */
     async handleCompletion(job, result, duration) {
         const updateData = {
             lastRunAt: new Date(),
@@ -175,15 +130,6 @@ class JobExecutor {
         await Job.updateOne({ _id: job._id }, { $set: updateData });
     }
 
-    /**
-     * Handle job failure
-     * 
-     * If retries remaining: Reschedule for retry
-     * If no retries left: Mark as FAILED
-     * 
-     * @param {Object} job - The failed job
-     * @param {Error} error - The error that occurred
-     */
     async handleFailure(job, error) {
         const newRetryCount = (job.retryCount || 0) + 1;
         const canRetry = newRetryCount < job.maxRetries;
@@ -220,12 +166,6 @@ class JobExecutor {
         await Job.updateOne({ _id: job._id }, { $set: updateData });
     }
 
-    /**
-     * Calculate the next run time for a recurring job
-     * 
-     * @param {Object} job - The job document
-     * @returns {Date|null} - Next run time or null
-     */
     calculateNextRun(job) {
         const now = new Date();
 
@@ -244,16 +184,6 @@ class JobExecutor {
         return null;
     }
 
-    /**
-     * Get next cron run time (simplified implementation)
-     * 
-     * For production, use 'cron-parser' library for accurate parsing.
-     * This is a basic implementation for common patterns.
-     * 
-     * @param {string} cronExpression - Cron expression
-     * @param {Date} from - Calculate from this time
-     * @returns {Date} - Next run time
-     */
     getNextCronRun(cronExpression, from) {
         // Simple implementation: Just add 1 hour for now
         // TODO: Replace with proper cron-parser in production
@@ -295,12 +225,6 @@ class JobExecutor {
         return next;
     }
 
-    /**
-     * Classify an error for analytics
-     * 
-     * @param {Error} error - The error
-     * @returns {string} - Error classification
-     */
     classifyError(error) {
         const message = error.message.toLowerCase();
 

@@ -1,56 +1,3 @@
-/**
- * Worker Service with Enhanced Retry Support
- * 
- * This is an updated WorkerService that integrates the RetryManager
- * for robust failure handling and retry logic.
- * 
- * RETRY FLOW:
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │                                                                     │
- * │  Job Execution                                                      │
- * │       │                                                             │
- * │       ▼                                                             │
- * │  ┌─────────┐                                                        │
- * │  │ SUCCESS │──────────────────────────────────────────▶ COMPLETED   │
- * │  └────┬────┘                                                        │
- * │       │ FAILURE                                                     │
- * │       ▼                                                             │
- * │  ┌──────────────────┐                                               │
- * │  │ Is Retryable?    │                                               │
- * │  └────────┬─────────┘                                               │
- * │           │                                                         │
- * │     ┌─────┴─────┐                                                   │
- * │     ▼           ▼                                                   │
- * │    YES         NO ──────────────────────────────────▶ FAILED        │
- * │     │                                                               │
- * │     ▼                                                               │
- * │  ┌──────────────────┐                                               │
- * │  │ Retries Left?    │                                               │
- * │  └────────┬─────────┘                                               │
- * │           │                                                         │
- * │     ┌─────┴─────┐                                                   │
- * │     ▼           ▼                                                   │
- * │    YES         NO ──────────────────────────────────▶ FAILED        │
- * │     │                                                               │
- * │     ▼                                                               │
- * │  ┌──────────────────┐                                               │
- * │  │ Calculate Delay  │ (Exponential Backoff + Jitter)                │
- * │  └────────┬─────────┘                                               │
- * │           │                                                         │
- * │           ▼                                                         │
- * │  ┌──────────────────┐                                               │
- * │  │ Schedule Retry   │ (nextRunAt = now + delay)                     │
- * │  └────────┬─────────┘                                               │
- * │           │                                                         │
- * │           ▼                                                         │
- * │       SCHEDULED ─────────────────────────────────────▶ (Wait...)    │
- * │                                                            │        │
- * │                                                            │        │
- * │  ◀─────────────────────────────────────────────────────────┘        │
- * │  (Next poll picks up the job and retries)                           │
- * │                                                                     │
- * └─────────────────────────────────────────────────────────────────────┘
- */
 
 const EventEmitter = require('events');
 const Job = require('../models/Job');
@@ -235,11 +182,6 @@ class WorkerServiceWithRetry extends EventEmitter {
         this.activeJobs.set(job.jobId, jobPromise);
     }
 
-    /**
-     * Execute a job with retry handling
-     * 
-     * This is the core execution method that integrates retry logic.
-     */
     async executeJob(job) {
         const startTime = Date.now();
         const isRetry = (job.retryCount || 0) > 0;
