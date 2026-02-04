@@ -1,15 +1,4 @@
-/**
- * Job Input Validators
- * 
- * Validates incoming job creation requests.
- * Uses a simple validation approach without external libraries.
- */
 
-/**
- * Validate cron expression format
- * @param {string} cron - Cron expression to validate
- * @returns {boolean} - Whether the cron is valid
- */
 const isValidCronExpression = (cron) => {
     if (!cron || typeof cron !== 'string') return false;
 
@@ -40,11 +29,6 @@ const isValidCronExpression = (cron) => {
     return true;
 };
 
-/**
- * Validate one-time job input
- * @param {Object} data - Request body
- * @returns {Object} - { isValid, errors, sanitizedData }
- */
 const validateOneTimeJob = (data) => {
     const errors = [];
     const sanitizedData = {};
@@ -163,11 +147,6 @@ const validateOneTimeJob = (data) => {
     };
 };
 
-/**
- * Validate recurring job input
- * @param {Object} data - Request body
- * @returns {Object} - { isValid, errors, sanitizedData }
- */
 const validateRecurringJob = (data) => {
     const errors = [];
     const sanitizedData = {};
