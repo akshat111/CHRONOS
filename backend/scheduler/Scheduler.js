@@ -65,14 +65,6 @@ class Scheduler extends EventEmitter {
         console.log('[Scheduler] Starting...');
         this.isRunning = true;
         this.stats.startedAt = new Date();
-
-        // Acquire scheduler lock (only one active scheduler per deployment)
-        // Comment this out if you want multiple schedulers
-        // const hasLock = await this.lockManager.acquireWithRenewal('scheduler:main', 60000);
-        // if (!hasLock) {
-        //   console.log('[Scheduler] Another scheduler is active. Running in standby mode.');
-        // }
-
         // Start polling for jobs
         this.poll();
         this.pollTimer = setInterval(() => this.poll(), this.pollInterval);

@@ -1,10 +1,3 @@
-/**
- * CHRONOS - Job Scheduling System
- * 
- * Main server entry point.
- * Configures Express app, middleware, routes, and starts the server.
- */
-
 require('dotenv').config();
 
 const express = require('express');

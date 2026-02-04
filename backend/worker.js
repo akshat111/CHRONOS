@@ -1,21 +1,3 @@
-/**
- * Worker Entry Point
- * 
- * Standalone worker process for executing scheduled jobs.
- * 
- * USAGE:
- *   node worker.js
- *   
- * ENVIRONMENT:
- *   MONGODB_URI     - MongoDB connection string
- *   POLL_INTERVAL   - Polling interval in ms (default: 5000)
- *   CONCURRENCY     - Max parallel jobs (default: 5)
- *   WORKER_ID       - Optional worker identifier
- * 
- * This process can run independently from the API server
- * and can be scaled horizontally by running multiple instances.
- */
-
 require('dotenv').config();
 
 const mongoose = require('mongoose');
