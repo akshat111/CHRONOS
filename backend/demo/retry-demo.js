@@ -1,15 +1,3 @@
-/**
- * Retry Demo Script
- * 
- * Demonstrates the retry mechanism with:
- * - Jobs that fail and get retried
- * - Exponential backoff delays
- * - Logging of each retry attempt
- * 
- * USAGE:
- *   node demo/retry-demo.js
- */
-
 require('dotenv').config();
 
 const mongoose = require('mongoose');
@@ -101,10 +89,6 @@ worker.on('job:failed', ({ jobId, error, attempt, reason }) => {
     console.log(`     Reason: ${reason}`);
     console.log(`     Last error: ${error}`);
 });
-
-// ═══════════════════════════════════════════════════════════════════════
-// DEMO FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════
 
 async function createTestJobs() {
     console.log('📝 Creating test jobs...\n');
@@ -212,9 +196,6 @@ async function displayJobFinalStatus() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// MAIN
-// ═══════════════════════════════════════════════════════════════════════
 
 async function main() {
     console.log(`

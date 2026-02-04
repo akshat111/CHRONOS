@@ -1,16 +1,7 @@
-/**
- * Authentication Controller
- * Handles user signup and login
- */
-
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../middleware/asyncHandler');
 
-/**
- * POST /auth/signup
- * Create a new user account
- */
 const signup = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
 
@@ -43,10 +34,6 @@ const signup = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * POST /auth/login
- * Login with username and password
- */
 const login = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
 
@@ -83,10 +70,6 @@ const login = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * GET /auth/me
- * Get current user info
- */
 const getMe = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 

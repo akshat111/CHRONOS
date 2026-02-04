@@ -1,16 +1,3 @@
-/**
- * Execution Demo Script
- * 
- * This script demonstrates the full job execution flow:
- * 1. Connects to MongoDB
- * 2. Creates sample jobs
- * 3. Runs the worker to execute them
- * 4. Shows execution logs
- * 
- * USAGE:
- *   node demo/execution-demo.js
- */
-
 require('dotenv').config();
 
 const mongoose = require('mongoose');
@@ -31,13 +18,7 @@ const worker = new WorkerService({
     handlers
 });
 
-// ═══════════════════════════════════════════════════════════════════════
-// DEMO FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Create sample jobs for testing
- */
 async function createSampleJobs() {
     console.log('\n📝 Creating sample jobs...\n');
 
@@ -121,9 +102,6 @@ async function createSampleJobs() {
     return jobs.length;
 }
 
-/**
- * Display execution logs
- */
 async function displayLogs() {
     console.log('\n📋 Recent Execution Logs:\n');
 
@@ -155,9 +133,6 @@ async function displayLogs() {
     console.log('  └─────────────────────────────────────────────────────────────────────────────┘\n');
 }
 
-/**
- * Display job status summary
- */
 async function displayJobStatus() {
     console.log('\n📊 Job Status Summary:\n');
 
@@ -185,10 +160,6 @@ async function displayJobStatus() {
     }
     console.log('  └────────────────────────────────┘\n');
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-// MAIN EXECUTION
-// ═══════════════════════════════════════════════════════════════════════
 
 async function main() {
     console.log(`

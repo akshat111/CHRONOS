@@ -1,10 +1,3 @@
-/**
- * Monitoring Controller
- * 
- * Provides system health and statistics endpoints.
- * Used for monitoring dashboards and alerting systems.
- */
-
 const mongoose = require('mongoose');
 const Job = require('../models/Job');
 const JobExecutionLog = require('../models/JobExecutionLog');
@@ -12,15 +5,8 @@ const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../middleware/asyncHandler');
 const os = require('os');
 
-// Track when the API server started
 const serverStartTime = new Date();
 
-/**
- * GET /system/health
- * 
- * Check system health status.
- * Returns status of all critical components.
- */
 const getSystemHealth = asyncHandler(async (req, res) => {
     const startTime = Date.now();
     const health = {
@@ -127,12 +113,6 @@ const getSystemHealth = asyncHandler(async (req, res) => {
     res.status(statusCode).json(health);
 });
 
-/**
- * GET /system/stats
- * 
- * Get job statistics.
- * Returns counts of jobs by status and execution metrics.
- */
 const getSystemStats = asyncHandler(async (req, res) => {
     const { period = '24h' } = req.query;
 
@@ -146,9 +126,6 @@ const getSystemStats = asyncHandler(async (req, res) => {
     };
     const periodMs = periodMap[period] || periodMap['24h'];
     const fromTime = new Date(Date.now() - periodMs);
-
-    // Initialize DEFAULT values (Zero-Failure Pattern)
-    // If DB calls fail, these safe defaults will be returned instead of crashing 500
     const defaults = {
         jobCounts: [],
         completedInPeriod: 0,
@@ -333,12 +310,6 @@ const getSystemStats = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * GET /system/stats/live
- * 
- * Get real-time statistics.
- * Lighter endpoint for frequent polling.
- */
 const getLiveStats = asyncHandler(async (req, res) => {
     const now = new Date();
     const fiveMinAgo = new Date(now - 300000);
@@ -367,13 +338,7 @@ const getLiveStats = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * GET /system/workers
- * 
- * Get information about active workers.
- */
 const getWorkerStats = asyncHandler(async (req, res) => {
-    // Find unique workers from recent executions
     const workers = await JobExecutionLog.aggregate([
         {
             $match: {

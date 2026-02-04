@@ -1,29 +1,9 @@
-/**
- * Logging Controller
- * 
- * Handles API endpoints for job execution logs.
- * Provides detailed execution history for debugging and monitoring.
- */
-
 const JobExecutionLog = require('../models/JobExecutionLog');
 const Job = require('../models/Job');
 const ApiResponse = require('../utils/ApiResponse');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../middleware/asyncHandler');
 
-/**
- * GET /jobs/:id/logs
- * 
- * Fetch execution logs for a specific job.
- * Returns logs sorted by execution time (newest first).
- * 
- * Query params:
- *   - limit: Max logs to return (default: 20, max: 100)
- *   - offset: Skip this many logs (for pagination)
- *   - status: Filter by status (SUCCESS, FAILED, TIMEOUT)
- *   - fromDate: Logs after this date
- *   - toDate: Logs before this date
- */
 const getJobLogs = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const {
@@ -106,12 +86,6 @@ const getJobLogs = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * GET /jobs/:id/logs/summary
- * 
- * Get a summary of execution logs for a job.
- * Useful for dashboards and quick overview.
- */
 const getJobLogsSummary = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -186,12 +160,6 @@ const getJobLogsSummary = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * GET /logs/recent
- * 
- * Get recent execution logs across all jobs.
- * Useful for monitoring dashboard.
- */
 const getRecentLogs = asyncHandler(async (req, res) => {
     const {
         limit = 50,

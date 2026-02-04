@@ -1,41 +1,14 @@
-/**
- * Simulated Task Handlers
- * 
- * These handlers simulate real-world job execution with:
- * - Configurable delays
- * - Random success/failure rates
- * - Detailed logging
- * - Realistic output data
- * 
- * Use these for testing the job scheduling system.
- */
-
-/**
- * Utility: Simulate async work with delay
- */
 const simulateWork = (minMs, maxMs) => {
     const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     return new Promise(resolve => setTimeout(resolve, delay));
 };
 
-/**
- * Utility: Random failure based on rate
- */
 const maybeThrow = (failureRate, errorMessage) => {
     if (Math.random() < failureRate) {
         throw new Error(errorMessage);
     }
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// EMAIL HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Send Email Handler
- * 
- * Simulates sending an email with validation and delivery.
- */
 const sendEmail = async (payload, job) => {
     console.log(`\n  📧 [sendEmail] Starting email job...`);
     console.log(`     To: ${payload.recipientEmail || payload.to || 'unknown'}`);
@@ -72,11 +45,6 @@ const sendEmail = async (payload, job) => {
     };
 };
 
-/**
- * Send Bulk Emails Handler
- * 
- * Simulates sending emails to multiple recipients.
- */
 const sendBulkEmail = async (payload, job) => {
     const recipients = payload.recipients || [];
     console.log(`\n  📧 [sendBulkEmail] Sending to ${recipients.length} recipients...`);
@@ -106,15 +74,6 @@ const sendBulkEmail = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// REPORT HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Generate Report Handler
- * 
- * Simulates generating a data report.
- */
 const generateReport = async (payload, job) => {
     console.log(`\n  📊 [generateReport] Generating ${payload.reportType || 'default'} report...`);
 
@@ -148,15 +107,6 @@ const generateReport = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// MAINTENANCE HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Cleanup Handler
- * 
- * Simulates cleaning up old files or data.
- */
 const cleanup = async (payload, job) => {
     const target = payload.target || 'temp_files';
     console.log(`\n  🧹 [cleanup] Cleaning up ${target}...`);
@@ -183,11 +133,6 @@ const cleanup = async (payload, job) => {
     };
 };
 
-/**
- * Database Maintenance Handler
- * 
- * Simulates database optimization tasks.
- */
 const dbMaintenance = async (payload, job) => {
     console.log(`\n  🔧 [dbMaintenance] Running database maintenance...`);
 
@@ -214,15 +159,6 @@ const dbMaintenance = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// MONITORING HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Health Check Handler
- * 
- * Simulates checking external service health.
- */
 const healthCheck = async (payload, job) => {
     const services = payload.services || ['api', 'database', 'cache'];
     console.log(`\n  🏥 [healthCheck] Checking ${services.length} services...`);
@@ -250,15 +186,6 @@ const healthCheck = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// INTEGRATION HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Webhook Sender Handler
- * 
- * Simulates sending webhook notifications.
- */
 const sendWebhook = async (payload, job) => {
     console.log(`\n  🔗 [sendWebhook] Sending webhook...`);
     console.log(`     URL: ${payload.url || 'Not specified'}`);
@@ -286,11 +213,6 @@ const sendWebhook = async (payload, job) => {
     };
 };
 
-/**
- * Data Sync Handler
- * 
- * Simulates syncing data between systems.
- */
 const dataSync = async (payload, job) => {
     console.log(`\n  🔄 [dataSync] Starting data sync...`);
     console.log(`     Source: ${payload.source || 'primary'}`);
@@ -323,15 +245,6 @@ const dataSync = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// NOTIFICATION HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Push Notification Handler
- * 
- * Simulates sending push notifications.
- */
 const sendNotification = async (payload, job) => {
     console.log(`\n  🔔 [sendNotification] Sending push notification...`);
     console.log(`     User: ${payload.userId || 'unknown'}`);
@@ -352,15 +265,6 @@ const sendNotification = async (payload, job) => {
     };
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// DEMO/TEST HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
-
-/**
- * Echo Handler - For testing
- * 
- * Simply echoes back the payload.
- */
 const echo = async (payload, job) => {
     console.log(`\n  🔊 [echo] Echoing payload...`);
     await simulateWork(100, 200);
@@ -372,11 +276,6 @@ const echo = async (payload, job) => {
     };
 };
 
-/**
- * Delay Handler - For testing
- * 
- * Simulates a long-running job.
- */
 const delay = async (payload, job) => {
     const delayMs = payload.delayMs || 5000;
     console.log(`\n  ⏱️ [delay] Waiting for ${delayMs}ms...`);
@@ -389,23 +288,12 @@ const delay = async (payload, job) => {
         completedAt: new Date().toISOString()
     };
 };
-
-/**
- * Fail Handler - For testing retries
- * 
- * Always fails to test retry mechanism.
- */
 const alwaysFail = async (payload, job) => {
     console.log(`\n  💥 [alwaysFail] This job will fail...`);
     await simulateWork(100, 300);
     throw new Error('Intentional failure for testing');
 };
 
-/**
- * Random Handler - For testing
- * 
- * Randomly succeeds or fails.
- */
 const randomOutcome = async (payload, job) => {
     const successRate = payload.successRate || 0.5;
     console.log(`\n  🎲 [randomOutcome] Success rate: ${successRate * 100}%`);
@@ -422,10 +310,6 @@ const randomOutcome = async (payload, job) => {
         completedAt: new Date().toISOString()
     };
 };
-
-// ═══════════════════════════════════════════════════════════════════════
-// EXPORT ALL HANDLERS
-// ═══════════════════════════════════════════════════════════════════════
 
 module.exports = {
     // Email

@@ -1,29 +1,13 @@
 const mongoose = require('mongoose');
 
-/**
- * Database Configuration
- * 
- * Handles MongoDB connection with proper error handling,
- * connection pooling, and reconnection logic.
- */
-
 const connectDB = async () => {
     try {
-        // MongoDB connection options for production-ready setup
+
         const options = {
-            // Connection pool size - adjust based on expected load
             maxPoolSize: 10,
-
-            // Server selection timeout (how long to wait for a server)
             serverSelectionTimeoutMS: 5000,
-
-            // Socket timeout (how long to wait for a response)
             socketTimeoutMS: 45000,
-
-            // Buffering - disable if you want immediate errors instead of buffering
             bufferCommands: true,
-
-            // Heartbeat frequency to check server health
             heartbeatFrequencyMS: 10000
         };
 

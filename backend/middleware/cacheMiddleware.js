@@ -1,18 +1,7 @@
-/**
- * Cache Middleware
- * 
- * Simple in-memory caching for expensive API endpoints.
- * Reduces database load and improves response times in production.
- */
-
 class SimpleCache {
     constructor() {
         this.cache = new Map();
     }
-
-    /**
-     * Get cached value if not expired
-     */
     get(key) {
         const item = this.cache.get(key);
         if (!item) return null;
@@ -25,41 +14,21 @@ class SimpleCache {
 
         return item.data;
     }
-
-    /**
-     * Set cache value with TTL (time to live)
-     */
     set(key, data, ttlMs) {
         this.cache.set(key, {
             data,
             expiresAt: Date.now() + ttlMs
         });
     }
-
-    /**
-     * Clear specific key
-     */
     delete(key) {
         this.cache.delete(key);
     }
-
-    /**
-     * Clear all cache
-     */
     clear() {
         this.cache.clear();
     }
-
-    /**
-     * Get cache size
-     */
     size() {
         return this.cache.size;
     }
-
-    /**
-     * Clean expired entries
-     */
     cleanup() {
         const now = Date.now();
         for (const [key, item] of this.cache.entries()) {
@@ -78,12 +47,6 @@ setInterval(() => {
     cache.cleanup();
 }, 300000);
 
-/**
- * Cache middleware factory
- * 
- * @param {number} ttlSeconds - Time to live in seconds
- * @param {function} keyGenerator - Optional function to generate cache key from req
- */
 const cacheMiddleware = (ttlSeconds = 30, keyGenerator = null) => {
     return (req, res, next) => {
         // Generate cache key
@@ -118,9 +81,6 @@ const cacheMiddleware = (ttlSeconds = 30, keyGenerator = null) => {
     };
 };
 
-/**
- * Clear cache for specific pattern
- */
 const clearCache = (pattern) => {
     if (pattern) {
         for (const key of cache.cache.keys()) {

@@ -1,19 +1,9 @@
-/**
- * Authentication Middleware
- * 
- * Verifies JWT tokens for protected routes.
- */
-
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'chronos_secret_key_2024';
 
-/**
- * Authentication middleware
- * Expects: Authorization header with Bearer token
- */
 const authenticate = async (req, res, next) => {
     try {
         // Check for authorization header
@@ -53,10 +43,6 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-/**
- * Optional authentication
- * Attaches user if token present, but doesn't require it
- */
 const optionalAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
@@ -68,10 +54,6 @@ const optionalAuth = async (req, res, next) => {
     return authenticate(req, res, next);
 };
 
-/**
- * Role-based authorization
- * Usage: authorize('admin', 'moderator')
- */
 const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user) {
