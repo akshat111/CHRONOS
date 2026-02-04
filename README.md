@@ -1,6 +1,12 @@
 # CHRONOS ⚡
 
-A modern Job Scheduling System built with Node.js and React.
+[![GitHub Repo](https://img.shields.io/badge/GitHub-CHRONOS-blue?style=for-the-badge&logo=github)](https://github.com/akshat111/CHRONOS)
+[![Stars](https://img.shields.io/github/stars/akshat111/CHRONOS?style=for-the-badge&logo=github)](https://github.com/akshat111/CHRONOS/stargazers)
+[![Forks](https://img.shields.io/github/forks/akshat111/CHRONOS?style=for-the-badge&logo=github)](https://github.com/akshat111/CHRONOS/network/members)
+[![Issues](https://img.shields.io/github/issues/akshat111/CHRONOS?style=for-the-badge&logo=github)](https://github.com/akshat111/CHRONOS/issues)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+> A modern, production-ready Job Scheduling System built with Node.js and React.
 
 ## Features
 
